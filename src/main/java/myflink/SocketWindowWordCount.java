@@ -18,7 +18,7 @@
 package myflink;
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.time.Time;
@@ -35,46 +35,22 @@ public class SocketWindowWordCount {
 		DataStream<String> text = env.socketTextStream("localhost", 9000, "\n");
 
 		// 解析数据，按 word 分组，开窗，聚合
-		DataStream<WordWithCount> windowCounts = text
-				.flatMap(new FlatMapFunction<String, WordWithCount>() {
+		DataStream<Tuple2<String, Integer>> windowCounts = text
+				.flatMap(new FlatMapFunction<String, Tuple2<String, Integer>>() {
 					@Override
-					public void flatMap(String value, Collector<WordWithCount> out) {
+					public void flatMap(String value, Collector<Tuple2<String, Integer>> out) {
 						for (String word : value.split("\\s")) {
-							out.collect(new WordWithCount(word, 1L));
+							out.collect(Tuple2.of(word, 1));
 						}
 					}
 				})
-				.keyBy("word")
+				.keyBy(0)
 				.timeWindow(Time.seconds(5))
-				.reduce(new ReduceFunction<WordWithCount>() {
-					@Override
-					public WordWithCount reduce(WordWithCount a, WordWithCount b) {
-						return new WordWithCount(a.word, a.count + b.count);
-					}
-				});
+				.sum(1);
 
 		// 将结果打印到控制台，注意这里使用的是单线程打印，而非多线程
 		windowCounts.print().setParallelism(1);
 
 		env.execute("Socket Window WordCount");
-	}
-
-	// 单词和次数的数据类型
-	public static class WordWithCount {
-
-		public String word;
-		public long count;
-
-		public WordWithCount() {}
-
-		public WordWithCount(String word, long count) {
-			this.word = word;
-			this.count = count;
-		}
-
-		@Override
-		public String toString() {
-			return word + " : " + count;
-		}
 	}
 }
