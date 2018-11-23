@@ -149,7 +149,7 @@ public class HotItems {
 			StringBuilder result = new StringBuilder();
 			result.append("====================================\n");
 			result.append("时间: ").append(new Timestamp(timestamp-1)).append("\n");
-			for (int i=0;i<topSize;i++) {
+                        for (int i=0; i<allItems.size() && i < topSize; i++) {
 				ItemViewCount currentItem = allItems.get(i);
 				// No1:  商品ID=12224  浏览量=2413
 				result.append("No").append(i).append(":")
